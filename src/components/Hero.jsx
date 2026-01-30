@@ -24,7 +24,7 @@ export function Hero() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-6xl md:text-8xl font-extrabold text-white tracking-tight"
         >
-          Welcome To <span className="text-[#6366f1]">MangaNow</span>
+          Welcome To <span className="text-[#6366f1]">MangaN</span>
         </motion.h1>
 
         <motion.p

@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, Outlet, useRouteError } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet, useRouteError, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { Navbar } from './components/Navbar';
@@ -11,10 +11,11 @@ import { LoginModal } from './components/LoginModal';
 import { MoreMangaView } from './components/MoreMangaView';
 import { SearchResults } from './components/SearchResults';
 import { NotFound } from './components/NotFound';
-import { MANGA_LIST } from './data/mangaData';
 import { ChevronLeft } from 'lucide-react';
+import { fetchMangaDetail, fetchChapters } from './api/mangadex';
+import { Footer } from './components/Footer';
 
-// Error Boundary Component
+// Error Boundary
 function ErrorBoundary() {
   const error = useRouteError();
   const navigate = useNavigate();
@@ -41,58 +42,52 @@ function Layout() {
   const [showLogin, setShowLogin] = useState(false);
   const [query, setQuery] = useState('');
   
+  // NEW: Get current location path
+  const location = useLocation();
+  const isHomePage = location.pathname === '/';
+  
   return (
-    <div className="bg-[#0a0a0a] min-h-screen text-white">
+    <div className="bg-[#0a0a0a] min-h-screen flex flex-col text-white">
       <Navbar query={query} setQuery={setQuery} setShowLogin={setShowLogin} />
-      <main>
+      
+      <main className="flex-1">
         <Outlet />
       </main>
+
+      {/* Conditionally Render Footer: Hide on Home Page */}
+      {!isHomePage && <Footer />}
+
       {showLogin && <LoginModal setShowLogin={setShowLogin} />}
-      
-      {/* Toast Notifications */}
-      <Toaster 
-        position="bottom-right"
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: '#141414',
-            color: '#fff',
-            border: '1px solid #27272a',
-            borderRadius: '12px',
-            padding: '16px',
-          },
-          success: {
-            iconTheme: {
-              primary: '#6366f1',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
-            },
-          },
-        }}
-      />
+      <Toaster position="bottom-right" toastOptions={{
+          style: { background: '#141414', color: '#fff', border: '1px solid #27272a' }
+      }}/>
     </div>
   );
 }
 
-export function mangaLoader({ params }) {
-  const manga = MANGA_LIST.find(m => m.id === params.mangaId);
-  if (!manga) throw new Error("Manga not found");
-  return { manga };
+// --- LOADERS ---
+
+export async function mangaLoader({ params }) {
+  if (!params.mangaId || params.mangaId === 'undefined') {
+    throw new Error("Invalid Manga ID provided.");
+  }
+  try {
+    const manga = await fetchMangaDetail(params.mangaId);
+    const chaptersData = await fetchChapters(params.mangaId); 
+    return { manga, initialChapters: chaptersData.data, totalChaptersCount: chaptersData.total };
+  } catch (err) {
+    throw new Error("Could not load manga details.");
+  }
 }
 
-export function chapterLoader({ params }) {
-  const manga = MANGA_LIST.find(m => m.id === params.mangaId);
-  if (!manga) throw new Error("Manga not found");
-  const chapterNumber = parseInt(params.chapterId, 10);
-  if (isNaN(chapterNumber) || chapterNumber < 1 || chapterNumber > manga.totalChapters) {
-    throw new Error(`Invalid chapter. This manga only has ${manga.totalChapters} chapters.`);
+export async function chapterLoader({ params }) {
+  if (!params.chapterId || params.chapterId === 'undefined') {
+    throw new Error("Invalid Chapter ID.");
   }
-  return { manga, chapterNumber };
+  return { 
+    mangaId: params.mangaId, 
+    chapterId: params.chapterId 
+  };
 }
 
 const router = createBrowserRouter([
@@ -101,18 +96,9 @@ const router = createBrowserRouter([
     element: <Layout />,
     errorElement: <ErrorBoundary />,
     children: [
-      {
-        index: true,
-        element: <Hero />
-      },
-      {
-        path: "explore",
-        element: <Explore />
-      },
-      {
-        path: "explore/latest-updates",
-        element: <MoreMangaView />
-      },
+      { index: true, element: <Hero /> },
+      { path: "explore", element: <Explore /> },
+      { path: "explore/latest-updates", element: <MoreMangaView /> },
       {
         path: "manga/:mangaId",
         element: <DetailPage />,
@@ -125,18 +111,9 @@ const router = createBrowserRouter([
         loader: chapterLoader,
         errorElement: <ErrorBoundary />
       },
-      {
-        path: "library",
-        element: <Library />
-      },
-      {
-        path: "search",
-        element: <SearchResults />
-      },
-      {
-        path: "*",
-        element: <NotFound />
-      }
+      { path: "library", element: <Library /> },
+      { path: "search", element: <SearchResults /> },
+      { path: "*", element: <NotFound /> }
     ]
   }
 ]);
@@ -144,5 +121,3 @@ const router = createBrowserRouter([
 export default function App() {
   return <RouterProvider router={router} />;
 }
-
-export { MANGA_LIST };

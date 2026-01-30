@@ -34,7 +34,7 @@ export function HorizontalSection({ title, icon, list }) {
             whileTap={{ scale: 0.9 }} 
             onClick={scrollLeft} 
             disabled={atStart} 
-            className="p-2 rounded-full bg-[#1f1f1f] border border-[#27272a] hover:bg-[#2a2a2a] hover:border-[#6366f1] disabled:opacity-40 disabled:cursor-not-allowed text-white transition"
+            className="p-2 rounded-full bg-[#1f1f1f] border border-[#27272a] hover:bg-[#2a2a2a] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-white transition"
           >
             <ChevronLeft size={20} />
           </motion.button>
@@ -42,7 +42,7 @@ export function HorizontalSection({ title, icon, list }) {
             whileTap={{ scale: 0.9 }} 
             onClick={scrollRight} 
             disabled={atEnd} 
-            className="p-2 rounded-full bg-[#1f1f1f] border border-[#27272a] hover:bg-[#2a2a2a] hover:border-[#6366f1] disabled:opacity-40 disabled:cursor-not-allowed text-white transition"
+            className="p-2 rounded-full bg-[#1f1f1f] border border-[#27272a] hover:bg-[#2a2a2a] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-white transition"
           >
             <ChevronRight size={20} />
           </motion.button>

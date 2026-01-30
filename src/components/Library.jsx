@@ -1,73 +1,80 @@
 import { motion } from 'framer-motion';
-import { User, BookMarked, History, LibraryIcon } from 'lucide-react';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { MangaCard } from './MangaCard';
-import { MANGA_LIST } from '../data/mangaData';
+import { getLibrary, getHistory } from '../utils/storage';
 
 export function Library() {
   const [activeTab, setActiveTab] = useState('reading');
-  const navigate = useNavigate();
+  const [history, setHistory] = useState([]);
+  const [bookmarks, setBookmarks] = useState([]);
 
-  const readingList = MANGA_LIST.slice(0, 4);
-  const bookmarkedList = MANGA_LIST.slice(2, 6);
-  const historyList = MANGA_LIST.slice(1, 5);
+  useEffect(() => {
+    // Load Data
+    setBookmarks(getLibrary());
+    setHistory(getHistory());
+  }, []);
 
-  const currentList = activeTab === 'reading' ? readingList : activeTab === 'bookmarked' ? bookmarkedList : historyList;
-
-  const tabConfig = {
-    reading: { icon: BookMarked, label: 'Reading' },
-    bookmarked: { icon: LibraryIcon, label: 'Bookmarked' },
-    history: { icon: History, label: 'History' }
-  };
+  const tabs = [
+    { id: 'reading', label: 'History' },
+    { id: 'bookmarked', label: 'Bookmarked' },
+  ];
 
   return (
-    <div className="pt-20 pb-12 min-h-screen bg-[#0a0a0a]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          className="mb-8"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-[#6366f1]/20 rounded-full">
-              <User className="text-[#6366f1]" size={32} />
-            </div>
-            <h1 className="text-4xl font-bold text-white">My Library</h1>
-          </div>
-          <p className="text-[#71717a]">Manage your reading list, bookmarks, and history</p>
-        </motion.div>
-
-        <div className="flex gap-2 mb-8 bg-[#141414] p-1 rounded-lg border border-[#27272a] w-fit">
-          {Object.entries(tabConfig).map(([tab, { icon: Icon, label }]) => (
+    <section className="pt-24 px-4 min-h-screen bg-[#0a0a0a]">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-4xl font-bold text-white mb-8">Your Library</h1>
+        
+        {/* Tabs */}
+        <div className="flex gap-8 border-b border-[#27272a] mb-8">
+          {tabs.map((tab) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-3 rounded-lg font-semibold capitalize transition flex items-center gap-2 ${
-                activeTab === tab
-                  ? 'bg-[#6366f1] text-white shadow-lg shadow-[#6366f1]/25'
-                  : 'text-[#a1a1aa] hover:text-white hover:bg-[#1f1f1f]'
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`pb-4 text-lg font-medium transition relative ${
+                activeTab === tab.id ? 'text-[#6366f1]' : 'text-[#71717a] hover:text-white'
               }`}
             >
-              <Icon size={18} />
-              {label}
+              {tab.label}
+              {activeTab === tab.id && (
+                <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#6366f1]" />
+              )}
             </button>
           ))}
         </div>
 
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-        >
-          {currentList.map((m, i) => (
-            <div key={`${m.id}-lib-${i}`}>
-              <MangaCard manga={m} index={i} />
-            </div>
-          ))}
-        </motion.div>
+        {/* Content */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          
+          {activeTab === 'reading' && (
+            history.length > 0 ? (
+              history.map((item, i) => (
+                 // History items might need slight adaptation to fit MangaCard props
+                 // or we just pass the stored object if it matches the structure
+                 <MangaCard key={i} manga={{
+                   id: item.mangaId,
+                   title: item.title,
+                   image: item.image,
+                   rating: 'R', // History object might not have rating, fallback
+                   genre: 'History'
+                 }} />
+              ))
+            ) : (
+              <p className="text-[#71717a] col-span-full text-center py-20">No reading history yet.</p>
+            )
+          )}
+
+          {activeTab === 'bookmarked' && (
+            bookmarks.length > 0 ? (
+              bookmarks.map((manga, i) => (
+                <MangaCard key={i} manga={manga} />
+              ))
+            ) : (
+              <p className="text-[#71717a] col-span-full text-center py-20">No bookmarks yet.</p>
+            )
+          )}
+          
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

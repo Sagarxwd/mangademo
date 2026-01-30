@@ -1,279 +1,183 @@
 import { motion } from 'framer-motion';
-import { Star, BookOpen, ChevronLeft, Heart, Bookmark, Share2, ChevronRight, ChevronDown } from 'lucide-react';
+import { Star, BookOpen, ChevronLeft, Heart, Bookmark, Share2, ChevronRight } from 'lucide-react';
 import { useNavigate, useLoaderData } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { fetchChapters } from '../api/mangadex';
+import { toggleLibrary, isInLibrary, getMangaHistory } from '../utils/storage';
 
 export function DetailPage() {
-  const { manga } = useLoaderData();
+  const { manga, initialChapters } = useLoaderData();
   const navigate = useNavigate();
-  const [liked, setLiked] = useState(false);
+  
+  const [chapters, setChapters] = useState(initialChapters || []);
+  const [loading, setLoading] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
-  const [visibleChapters, setVisibleChapters] = useState(50);
-  const [imgLoaded, setImgLoaded] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [lastRead, setLastRead] = useState(null);
 
-  // Check if bookmarked from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem(`manga-${manga.id}-bookmarked`);
-    if (saved) setBookmarked(true);
-    const likedStatus = localStorage.getItem(`manga-${manga.id}-liked`);
-    if (likedStatus) setLiked(true);
+    setBookmarked(isInLibrary(manga.id));
+    const history = getMangaHistory(manga.id);
+    if (history) setLastRead(history);
   }, [manga.id]);
 
-  if (!manga) return null;
+  useEffect(() => {
+     // If loader returned empty, try fetching one more time just to be safe
+     if(initialChapters && initialChapters.length === 0 && manga.id) {
+        setLoading(true);
+        fetchChapters(manga.id).then(res => {
+            setChapters(res.data);
+            setLoading(false);
+        });
+     }
+  }, [manga.id]);
 
-  const chapters = Array.from({ length: manga.totalChapters || 0 }, (_, i) => ({ 
-    number: i + 1, 
-    title: `Chapter ${i + 1}`
-    // ❌ Date hata diya
-  }));
-
-  const chaptersToShow = chapters.slice(0, visibleChapters);
-  const hasMore = chapters.length > visibleChapters;
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      await navigator.share({
-        title: manga.title,
-        text: `Check out ${manga.title} on MangaNow!`,
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast.success('Link copied to clipboard!');
-    }
+  const handleChapterClick = (chapterId, chapterNumber) => {
+    navigate(`/manga/${manga.id}/chapter/${chapterId}`);
   };
 
   const handleBookmark = () => {
-    setBookmarked(!bookmarked);
-    if (!bookmarked) {
-      localStorage.setItem(`manga-${manga.id}-bookmarked`, 'true');
-      toast.success('Added to bookmarks!');
-    } else {
-      localStorage.removeItem(`manga-${manga.id}-bookmarked`);
-      toast.success('Removed from bookmarks');
-    }
+    const isAdded = toggleLibrary(manga);
+    setBookmarked(isAdded);
+    toast.success(isAdded ? 'Added to Library' : 'Removed from Library');
   };
 
   const handleLike = () => {
-    setLiked(!liked);
-    if (!liked) {
-      localStorage.setItem(`manga-${manga.id}-liked`, 'true');
-      toast.success('Added to favorites!');
-    } else {
-      localStorage.removeItem(`manga-${manga.id}-liked`);
-      toast.success('Removed from favorites');
-    }
+      setLiked(!liked);
+      toast.success(liked ? 'Removed from Favorites' : 'Added to Favorites');
   };
 
-  const handleChapterClick = (chapterNum) => {
-    localStorage.setItem(`manga-${manga.id}-progress`, JSON.stringify({
-      chapter: chapterNum,
-      page: 0,
-      timestamp: new Date().toISOString()
-    }));
-    navigate(`/manga/${manga.id}/chapter/${chapterNum}`);
+  const handleShare = async () => {
+    await navigator.clipboard.writeText(window.location.href);
+    toast.success('Link copied!');
   };
 
-  const lastRead = JSON.parse(localStorage.getItem(`manga-${manga.id}-progress`) || '{}');
-  const continueChapter = lastRead.chapter || 1;
+  const startReadingId = chapters.length > 0 ? chapters[chapters.length - 1].id : null;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pt-16 pb-12 bg-[#0a0a0a] min-h-screen">
+      
+      {/* Hero Section */}
       <div className="relative h-80 overflow-hidden">
-        <img 
-          src={manga.image} 
-          alt={manga.title} 
-          className={`w-full h-full object-cover blur-2xl scale-110 transition-opacity duration-500 ${imgLoaded ? 'opacity-20' : 'opacity-0'}`}
-          onLoad={() => setImgLoaded(true)}
-        />
-        {!imgLoaded && <div className="absolute inset-0 bg-[#1f1f1f] animate-pulse" />}
+        <img src={manga.image} className="w-full h-full object-cover blur-2xl opacity-20" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-48 relative z-10">
-        <motion.button
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          whileHover={{ x: -5 }}
-          onClick={() => navigate('/explore')}
-          className="flex items-center gap-2 text-[#a1a1aa] hover:text-white mb-6 transition"
-        >
+      <div className="max-w-7xl mx-auto px-4 -mt-48 relative z-10">
+        <button onClick={() => navigate('/explore')} className="flex items-center gap-2 text-[#a1a1aa] hover:text-white mb-6">
           <ChevronLeft size={20} /><span>Back</span>
-        </motion.button>
+        </button>
 
         <div className="flex flex-col md:flex-row gap-8">
-          <div className="relative w-64 h-96 flex-shrink-0">
-            {!imgLoaded && <div className="absolute inset-0 bg-[#1f1f1f] rounded-2xl animate-pulse" />}
-            <motion.img
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-              src={manga.image}
-              alt={manga.title}
-              className={`w-full h-full object-cover rounded-2xl shadow-2xl border-2 border-[#27272a] transition-opacity duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
-              onLoad={() => setImgLoaded(true)}
-            />
+          <div className="w-64 h-96 flex-shrink-0">
+            <img src={manga.image} className="w-full h-full object-cover rounded-2xl shadow-2xl border-2 border-[#27272a]" />
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="flex-1"
-          >
-            <h1 className="text-5xl font-bold text-white mb-4">{manga.title}</h1>
-            <div className="flex items-center gap-6 mb-6">
+          <div className="flex-1">
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{manga.title}</h1>
+            
+            <div className="flex flex-wrap items-center gap-4 md:gap-6 mb-6">
               <div className="flex items-center gap-2">
                 <Star className="text-[#f59e0b]" size={20} fill="currentColor" />
                 <span className="text-white text-xl font-semibold">{manga.rating}</span>
               </div>
               <div className="flex items-center gap-2 text-[#a1a1aa]">
                 <BookOpen size={20} />
-                <span>{manga.totalChapters || 'N/A'} chapters</span>
+                <span>{chapters.length} readable chapters</span>
               </div>
-              <div className="flex items-center gap-2 text-[#6366f1] text-sm font-medium">
-                <div className="w-2 h-2 rounded-full bg-[#6366f1] animate-pulse" />
-                {manga.status === 'ongoing' ? 'Ongoing' : 'Completed'}
+              <div className="text-[#6366f1] text-sm font-medium capitalize px-3 py-1 bg-[#6366f1]/10 rounded-full">
+                {manga.status}
               </div>
             </div>
-
-            <div className="flex flex-wrap gap-2 mb-6">
-              {manga.genre.split(', ').map((g, i) => (
-                <span key={i} className="bg-[#1f1f1f] border border-[#27272a] text-[#a1a1aa] px-4 py-1 rounded-full text-sm hover:border-[#6366f1] hover:text-white transition cursor-pointer">
-                  {g}
-                </span>
-              ))}
-            </div>
-
-            <p className="text-[#71717a] text-lg mb-8 leading-relaxed">
-              An epic story filled with action, adventure, and unforgettable characters. Follow the journey as heroes rise to face incredible challenges.
+            
+            <p className="text-[#71717a] text-lg mb-8 leading-relaxed line-clamp-4 hover:line-clamp-none transition-all cursor-pointer">
+              {manga.description}
             </p>
-
-            {lastRead.chapter && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-4 p-4 bg-[#6366f1]/10 border border-[#6366f1]/30 rounded-xl flex items-center justify-between"
-              >
-                <div>
-                  <p className="text-[#a1a1aa] text-sm">Continue Reading</p>
-                  <p className="text-white font-bold">Chapter {lastRead.chapter}</p>
-                </div>
-                <button 
-                  onClick={() => handleChapterClick(lastRead.chapter)}
-                  className="bg-[#6366f1] hover:bg-[#4f46e5] px-4 py-2 rounded-lg text-white font-semibold transition"
-                >
-                  Resume
-                </button>
-              </motion.div>
-            )}
-
-            <div className="flex gap-4 mb-6">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleChapterClick(1)}
-                className="bg-[#6366f1] hover:bg-[#4f46e5] text-white px-12 py-4 rounded-full font-bold text-lg transition shadow-lg shadow-[#6366f1]/25"
-              >
-                {lastRead.chapter ? 'Start Over' : 'Start Reading'}
-              </motion.button>
-
-              {/* ❤️ Heart - Red Theme */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleLike}
-                className={`p-4 rounded-full border-2 transition ${
-                  liked 
-                    ? 'bg-red-500/20 border-red-500 text-red-500' 
-                    : 'border-[#27272a] text-[#71717a] hover:border-red-500 hover:text-red-500'
-                }`}
-              >
-                <Heart size={24} fill={liked ? "currentColor" : "none"} />
-              </motion.button>
-
-              {/* 🔖 Bookmark - White Theme */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleBookmark}
-                className={`p-4 rounded-full border-2 transition ${
-                  bookmarked 
-                    ? 'bg-white/10 border-white text-white' 
-                    : 'border-[#27272a] text-[#71717a] hover:border-white hover:text-white'
-                }`}
-              >
-                <Bookmark size={24} fill={bookmarked ? "currentColor" : "none"} />
-              </motion.button>
-
-              <motion.button 
-                whileHover={{ scale: 1.05 }} 
-                whileTap={{ scale: 0.95 }} 
-                onClick={handleShare}
-                className="p-4 rounded-full border-2 border-[#27272a] text-[#71717a] hover:border-[#6366f1] hover:text-[#6366f1] transition"
-              >
-                <Share2 size={24} />
-              </motion.button>
+            
+            {/* Buttons */}
+            <div className="flex flex-wrap gap-4 mb-6">
+               {lastRead ? (
+                 <button 
+                   onClick={() => handleChapterClick(lastRead.chapterId)} 
+                   className="bg-[#6366f1] hover:bg-[#4f46e5] text-white px-8 py-3 rounded-full font-bold text-lg transition shadow-lg shadow-[#6366f1]/25"
+                 >
+                   Continue Ch {lastRead.chapterNumber}
+                 </button>
+               ) : (
+                 <button 
+                   onClick={() => handleChapterClick(startReadingId)} 
+                   disabled={!startReadingId}
+                   className="bg-[#6366f1] hover:bg-[#4f46e5] disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-full font-bold text-lg transition"
+                 >
+                   {chapters.length > 0 ? 'Start Reading' : 'No Chapters'}
+                 </button>
+               )}
+               {/* Bookmark & Like Buttons */}
+               <button onClick={handleLike} className={`p-4 rounded-full border border-[#27272a] hover:border-white transition ${liked ? 'bg-[#ef4444]/10 border-[#ef4444]' : 'bg-[#141414]'}`}>
+                 <Heart className={liked ? 'text-[#ef4444] fill-[#ef4444]' : 'text-white'} size={24} />
+               </button>
+               <button onClick={handleBookmark} className={`p-4 rounded-full border border-[#27272a] hover:border-white transition ${bookmarked ? 'bg-[#6366f1]/10 border-[#6366f1]' : 'bg-[#141414]'}`}>
+                 <Bookmark className={bookmarked ? 'text-[#6366f1] fill-[#6366f1]' : 'text-white'} size={24} />
+               </button>
+               <button onClick={handleShare} className="p-4 rounded-full bg-[#141414] border border-[#27272a] hover:border-white text-white transition">
+                 <Share2 size={24} />
+               </button>
             </div>
-          </motion.div>
+          </div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mt-12"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold text-white">Chapters</h3>
-            <span className="text-[#71717a] text-sm">{chapters.length} Total</span>
-          </div>
+        {/* Chapters List */}
+        <div className="mt-12">
+          <h3 className="text-2xl font-bold text-white mb-6">Chapters ({chapters.length})</h3>
           
-          <div className="bg-[#141414] border border-[#27272a] rounded-2xl overflow-hidden">
-            {chaptersToShow.map((ch, idx) => (
-              <motion.div
-                key={ch.number}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.01 }}
-                whileHover={{ x: 10, backgroundColor: '#1f1f1f' }}
-                onClick={() => handleChapterClick(ch.number)}
-                className={`flex items-center justify-between px-6 py-4 cursor-pointer group border-b border-[#27272a] last:border-b-0 transition-colors ${
-                  lastRead.chapter === ch.number ? 'bg-[#6366f1]/10 border-l-4 border-l-[#6366f1]' : ''
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${
-                    lastRead.chapter === ch.number 
-                      ? 'bg-[#6366f1] text-white' 
-                      : 'bg-[#1f1f1f] border border-[#27272a] text-[#6366f1] group-hover:bg-[#6366f1] group-hover:text-white'
-                  }`}>
-                    {ch.number}
+          <div className="bg-[#141414] border border-[#27272a] rounded-2xl overflow-hidden max-h-[800px] overflow-y-auto custom-scrollbar">
+            {loading ? (
+              <div className="p-10 text-center text-[#71717a]">Loading chapters...</div>
+            ) : chapters.length > 0 ? (
+              chapters.map((ch) => (
+                <div
+                  key={ch.id}
+                  onClick={() => handleChapterClick(ch.id, ch.number)}
+                  className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-[#1f1f1f] border-b border-[#27272a] last:border-0 group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="text-[#6366f1] font-bold w-16 text-right tabular-nums">
+                      {ch.number ? `Ch. ${ch.number}` : 'Oneshot'}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                             <h4 className="text-white font-medium group-hover:text-[#6366f1] transition-colors line-clamp-1">
+                                {ch.title || `Chapter ${ch.number}`}
+                             </h4>
+                        </div>
+                        <span className="text-xs text-[#71717a] flex gap-2">
+                            <span>{ch.group ? `by ${ch.group}` : 'Unknown Group'}</span>
+                            <span>•</span>
+                            <span>{new Date(ch.publishAt).toLocaleDateString()}</span>
+                        </span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-white font-semibold group-hover:text-[#6366f1] transition">{ch.title}</h4>
-                    {/* ❌ Date yahan se hat gaya */}
+                  
+                  <div className="flex items-center gap-4">
+                      {lastRead?.chapterId === ch.id && (
+                         <span className="text-xs bg-[#6366f1] text-white px-2 py-1 rounded-full">Last Read</span>
+                      )}
+                      <ChevronRight className="text-[#71717a] group-hover:translate-x-1 transition-transform" size={20} />
                   </div>
                 </div>
-                {lastRead.chapter === ch.number && (
-                  <span className="text-xs text-[#6366f1] font-medium">Reading...</span>
-                )}
-                <ChevronRight className="text-[#71717a] group-hover:text-[#6366f1] transition" />
-              </motion.div>
-            ))}
-            
-            {hasMore && (
-              <button 
-                onClick={() => setVisibleChapters(prev => Math.min(prev + 50, chapters.length))}
-                className="w-full py-4 bg-[#1f1f1f] hover:bg-[#27272a] text-[#a1a1aa] transition flex items-center justify-center gap-2"
-              >
-                Load More <ChevronDown size={16} />
-                <span className="text-xs ml-2">({chapters.length - visibleChapters} remaining)</span>
-              </button>
+              ))
+            ) : (
+              <div className="p-12 text-center flex flex-col items-center gap-4 border-2 border-dashed border-[#27272a] rounded-2xl m-4">
+                  <BookOpen size={48} className="text-[#27272a]" />
+                  <div>
+                    <h3 className="text-white font-bold text-lg mb-1">No English Chapters Available</h3>
+                   
+                  </div>
+              </div>
             )}
           </div>
-        </motion.div>
+        </div>
       </div>
     </motion.div>
   );

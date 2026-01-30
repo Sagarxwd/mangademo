@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../assets/logo.png';
+
 
 export function Navbar({ query, setQuery, setShowLogin }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -28,20 +28,7 @@ export function Navbar({ query, setQuery, setShowLogin }) {
           className="flex items-center gap-3 cursor-pointer group"
         >
           {/* Logo Container - No extra border, image fills completely */}
-          {/* <div className="relative w-10 h-10 flex-shrink-0">
-            <img 
-              src={logo} 
-              alt="MangaShelf" 
-              className="w-full h-full object-cover rounded-full"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextElementSibling.style.display = 'flex';
-              }}
-            />
-            <div className="hidden w-full h-full rounded-full bg-[#6366f1] items-center justify-center text-white font-bold text-sm">
-              MS
-            </div>
-          </div> */}
+        
           
           {/* Brand Text */}
           <div className="hidden sm:block ">
@@ -97,12 +84,12 @@ export function Navbar({ query, setQuery, setShowLogin }) {
             />
           </div>
 
-          <button 
+          {/* <button 
             onClick={() => setShowLogin(true)} 
             className="bg-[#6366f1] hover:bg-[#4f46e5] active:scale-95 px-6 py-2.5 rounded-full font-semibold transition-all duration-200 text-white shadow-lg shadow-[#6366f1]/25"
           >
             Login
-          </button>
+          </button> */}
         </motion.div>
 
         {/* Mobile menu button */}
