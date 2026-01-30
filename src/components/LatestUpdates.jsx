@@ -47,6 +47,7 @@ export function LatestUpdates({ mangaList = [] }) {
               src={item.image}
               alt={item.title}
               className="w-16 h-20 object-cover rounded-lg border-2 border-[#27272a] group-hover:border-[#6366f1] mr-4 transition"
+              referrerPolicy="no-referrer"
             />
             <div className="flex-1 min-w-0">
               <h4

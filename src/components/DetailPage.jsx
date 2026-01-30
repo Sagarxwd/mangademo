@@ -60,7 +60,8 @@ export function DetailPage() {
       
       {/* Hero Section */}
       <div className="relative h-80 overflow-hidden">
-        <img src={manga.image} className="w-full h-full object-cover blur-2xl opacity-20" />
+        <img src={manga.image} className="w-full h-full object-cover blur-2xl opacity-20" 
+        referrerPolicy="no-referrer"/>
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
       </div>
 
@@ -71,7 +72,8 @@ export function DetailPage() {
 
         <div className="flex flex-col md:flex-row gap-8">
           <div className="w-64 h-96 flex-shrink-0">
-            <img src={manga.image} className="w-full h-full object-cover rounded-2xl shadow-2xl border-2 border-[#27272a]" />
+            <img src={manga.image} className="w-full h-full object-cover rounded-2xl shadow-2xl border-2 border-[#27272a]" 
+            referrerPolicy="no-referrer"/>
           </div>
 
           <div className="flex-1">

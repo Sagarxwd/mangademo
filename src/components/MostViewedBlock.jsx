@@ -78,6 +78,7 @@ export function MostViewedBlock({ data }) {
                 alt={item.title} 
                 className="w-12 h-16 object-cover rounded-md border border-[#27272a] group-hover:border-[#6366f1] transition" 
                 loading="lazy"
+                referrerPolicy="no-referrer"
               />
               
               <div className="flex-1 min-w-0">

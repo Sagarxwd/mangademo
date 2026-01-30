@@ -40,6 +40,7 @@ export function MangaCard({ manga, index = 0 }) {
           src={image || 'https://via.placeholder.com/200x300?text=No+Image'}
           alt={title}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          referrerPolicy="no-referrer"
         />
         
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

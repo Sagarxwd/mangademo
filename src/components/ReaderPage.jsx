@@ -268,6 +268,7 @@ export function ReaderPage() {
                             alt={`Page ${i + 1}`}
                             className={`rounded shadow-2xl bg-[#1f1f1f] ${readingMode === 'horizontal' ? 'h-full w-auto object-contain' : 'w-full'}`}
                             loading="eager"
+                            referrerPolicy="no-referrer"
                         />
                         {readingMode === 'horizontal' && (
                              <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur px-2 py-1 rounded text-xs text-white">
