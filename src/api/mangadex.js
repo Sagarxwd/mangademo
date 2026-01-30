@@ -1,6 +1,6 @@
 // src/api/mangadex.js
 
-const BASE_URL = 'https://api.mangadex.org';
+const BASE_URL = '/api';
 const UPLOADS_URL = 'https://uploads.mangadex.org';
 
 const fetchJson = async (url) => {
